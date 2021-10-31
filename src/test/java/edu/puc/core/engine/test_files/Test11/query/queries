@@ -1,0 +1,4 @@
+SELECT BatteryVoltage
+FROM S4
+WHERE ( BatteryVoltage ; ApparentDielectricPermittivityAt30CmDepth + ; BatteryVoltage AS b2 )
+FILTER ( BatteryVoltage[value > 5] OR b2[value < 4.5] )

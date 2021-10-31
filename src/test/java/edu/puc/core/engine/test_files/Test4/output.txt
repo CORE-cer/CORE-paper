@@ -1,0 +1,7 @@
+21
+value=6.0
+value=4.1789
+value=4.125
+value=4.1151
+value=3.8621
+value=4.1602

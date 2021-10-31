@@ -1,0 +1,43 @@
+plugins {
+    id 'java'
+    id 'antlr'
+}
+
+group 'edu.puc.core'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+generateGrammarSource {
+    maxHeapSize = '64m'
+    arguments += ['-no-listener', '-visitor']
+}
+
+dependencies {
+    antlr 'org.antlr:antlr4:4.7'
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    implementation "org.openjfx:javafx-base:12:linux"
+    implementation group: 'org.json', name: 'json', version: '20190722'
+    implementation group: 'commons-cli', name: 'commons-cli', version: '1.3.1'
+    implementation group: 'javax.mail', name: 'mail', version: '1.4.1'
+    implementation "commons-validator:commons-validator:1.6"
+}
+
+task fatJar(type: Jar) {
+    baseName = 'CORE-FAT'
+    from {
+        configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+    manifest {
+        attributes(
+                'Main-Class': 'edu.puc.core.Main'
+        )
+    }
+    with jar
+}

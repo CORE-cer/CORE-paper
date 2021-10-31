@@ -1,0 +1,3 @@
+DECLARE EVENT A(id long, value double)
+DECLARE EVENT B(id long, value double)
+DECLARE STREAM S3(A, B)

@@ -1,0 +1,5 @@
+SELECT BatteryVoltage
+FROM S4
+WHERE ( BatteryVoltage )
+FILTER ( BatteryVoltage[value > 3]
+AND BatteryVoltage[id NOT IN { 123, 125 }] )

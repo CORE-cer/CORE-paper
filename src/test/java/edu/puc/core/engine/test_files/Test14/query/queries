@@ -1,0 +1,4 @@
+SELECT ApparentDielectricPermittivityAt30CmDepth
+FROM S4
+WHERE ( BatteryVoltage ; ApparentDielectricPermittivityAt30CmDepth AS a2 ) AS all_events
+FILTER ( all_events[id NOT IN { 123, 125 }] AND (BatteryVoltage[value > 5.5 or value < 4.5] OR a2[value > 4]))

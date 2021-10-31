@@ -1,0 +1,4 @@
+SELECT A
+FROM S3
+WHERE ( A )
+FILTER ( A[value > 7] )

@@ -1,0 +1,11 @@
+Variable;Fecha;id;Sitio;Valor
+WindSpeed;2019-09-23 18:12:45;56114232;Repetidor Apoquindo;2.82
+BatteryVoltage;2019-09-23 18:13:21;56113703;QR 05;6
+WindDirection;2019-09-23 18:12:45;56114234;Repetidor Apoquindo;152.6
+GustSpeed;2019-09-23 18:12:45;56114233;Repetidor Apoquindo;4.71
+SoilTemperatureAt30CmDepth;2019-09-23 18:12:58;56113702;QR 05;18.8
+ApparentDielectricPermittivityAt30CmDepth;2019-09-23 18:12:58;56113710;Repetidor Los Peumos 2;4.87
+AirTemperature;2019-09-23 18:13:05;56113700;QR 07;18.7339721679688
+BatteryVoltage;2019-09-23 18:13:21;56113703;QR 05;4.1789
+ApparentDielectricPermittivityAt30CmDepth;2019-09-23 18:13:23;56113705;QR 07;4.3
+SoilTemperatureAt30CmDepth;2019-09-23 18:13:28;56113711;Repetidor Los Peumos 2;11.8

@@ -1,0 +1,3 @@
+S1:CSV:./src/test/java/edu/puc/core/engine/test_files/Test15/stream/PolkuraAbrilMayo_acortado.csv
+S2:CSV:./src/test/java/edu/puc/core/engine/test_files/Test15/stream/PolkuraAbrilMayo_acortado2.csv
+S3:CSV:./src/test/java/edu/puc/core/engine/test_files/Test15/stream/PolkuraAbrilMayo_acortado3.csv

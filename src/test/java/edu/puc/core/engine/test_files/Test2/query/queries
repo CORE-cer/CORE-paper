@@ -1,0 +1,4 @@
+SELECT BatteryVoltage
+FROM S2
+WHERE ( BatteryVoltage )
+FILTER ( BatteryVoltage[value > 3] )
