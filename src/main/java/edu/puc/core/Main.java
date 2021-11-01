@@ -4,9 +4,8 @@ import edu.puc.core.engine.BaseEngine;
 import edu.puc.core.engine.Engine;
 import edu.puc.core.engine.executors.ExecutorManager;
 import edu.puc.core.engine.streams.StreamManager;
-import edu.puc.core.execution.callback.MatchCallback;
 import edu.puc.core.runtime.events.Event;
-import edu.puc.core.runtime.profiling.Profiler;
+
 import edu.puc.core.util.StringUtils;
 import org.apache.commons.cli.*;
 
@@ -16,20 +15,8 @@ import java.util.logging.Level;
 
 public class Main {
     static Engine engine;
-    static boolean memoryTest = false;
 
     public static void main(String[] args) throws Exception {
-        long maxMemTotal = 0;
-        long avgMemTotal = 0;
-        long maxMemUsed = 0;
-        long avgMemUsed = 0;
-        int count = 0;
-        long total = Runtime.getRuntime().totalMemory();
-//        maxMemTotal = avgMemTotal = total;
-//        System.gc();
-        long used = total - Runtime.getRuntime().freeMemory();
-//        maxMemUsed = avgMemUsed = used;
-
         CommandLine cmd = parseArgs(args);
 
         BaseEngine.LOGGER.setLevel(cmd.hasOption("v") ? Level.INFO: Level.OFF);
@@ -37,29 +24,6 @@ public class Main {
 
         BufferedReader queryFile = StringUtils.getReader(cmd.getOptionValue("q"));
         BufferedReader streamsFile = StringUtils.getReader(cmd.getOptionValue("s"));
-
-        if (cmd.hasOption("m")) {
-            memoryTest = Boolean.parseBoolean(cmd.getOptionValue("m"));
-        }
-
-        long numEvents = 0;
-        if (cmd.hasOption("n")) {
-            numEvents = Integer.parseInt(cmd.getOptionValue("n"));
-        }
-
-        long timeout = 0;
-        if (cmd.hasOption("t")) {
-            timeout = Integer.parseInt(cmd.getOptionValue("t"));
-        }
-
-        if (cmd.hasOption("i")) {
-            MatchCallback.limit = Integer.parseInt(cmd.getOptionValue("i"));
-        }
-
-        boolean execTime = false;
-        if (cmd.hasOption("e")) {
-            execTime = Boolean.parseBoolean(cmd.getOptionValue("e"));
-        }
 
         /*
          * QUERYFILE
@@ -75,18 +39,12 @@ public class Main {
          *
          * Syntax: STREAM_NAME:SOURCE_TYPE:SOURCE_ADDRESS
          */
-        long compileStartTime = System.nanoTime();
+
         /* Create executor manager */
         ExecutorManager executorManager = ExecutorManager.fromCOREFile(queryFile);
 
         /* Create stream manager */
         StreamManager streamManager = StreamManager.fromCOREFile(streamsFile);
-
-//        BufferedReader queryFile2 = StringUtils.getReader(cmd.getOptionValue("q"));
-//        queryFile2.readLine();
-//        String line = queryFile2.readLine();
-//        String query = StringUtils.readFile(line.split(":")[1]);
-//        BaseExecutor testExecutor = executorManager.newExecutor(query);
 
         // Parse Event and Stream declarations, initialize Engine
         engine = BaseEngine.newEngine(
@@ -101,59 +59,11 @@ public class Main {
 
         /* Start initial queries and reading the streams */
         engine.start();
-        Profiler.addCompileTime(System.nanoTime() - compileStartTime);
-        if (!memoryTest) {
-            while (!streamManager.isReady()) {
-                Thread.sleep(1000);
-            }
-        }
 
-        long events = 0;
-        long totalTime = 0;
         /* Send events to the engine */
-        long start = System.nanoTime();
-        while (numEvents == 0 || events <= numEvents) {
-            e = engine.nextEvent();
-            if (e == null) {
-                break;
-            }
-//            BaseEngine.LOGGER.info("Event sent: " + e.toString());
+        while ((e = engine.nextEvent()) != null) {
+            BaseEngine.LOGGER.info("Event sent: " + e.toString());
             engine.sendEvent(e);
-            events++;
-            if (memoryTest && events % 10000 == 0) {
-                total = Runtime.getRuntime().totalMemory();
-                avgMemTotal += total;
-                if (total > maxMemTotal) {
-                    maxMemTotal = total;
-                }
-                System.gc();
-                used = total - Runtime.getRuntime().freeMemory();
-                avgMemUsed += used;
-                if (used > maxMemUsed) {
-                    maxMemUsed = used;
-                }
-                count++;
-            }
-            if (timeout != 0 && (System.nanoTime() - start >= 1000000000 * timeout)) {
-                totalTime = System.nanoTime() - start;
-                break;
-            }
-        }
-
-        streamManager.stopReaders();
-
-        if (!memoryTest) {
-            if (execTime) {
-                System.out.print((double)(System.nanoTime() - start)/1000000000 + ",");
-            }
-            System.out.print(events + ",");
-            Profiler.print();
-            System.out.println();
-        } else {
-            System.out.print(maxMemTotal + ",");
-            System.out.print(avgMemTotal/count + ",");
-            System.out.print(maxMemUsed + ",");
-            System.out.println(avgMemUsed/count);
         }
 
         BaseEngine.LOGGER.info("No more events. Exiting.");
@@ -181,21 +91,6 @@ public class Main {
         Option streamsfileOption = new Option("s", "streamsfile", true, "streamsfile file path");
         streamsfileOption.setRequired(true);
         options.addOption(streamsfileOption);
-
-        Option memoryTestOption = new Option("m", "memtest", true, "if memtest is enabled");
-        options.addOption(memoryTestOption);
-
-        Option numEventsOption = new Option("n", "numevents", true, "number of events to process");
-        options.addOption(numEventsOption);
-
-        Option timeOutOption = new Option("t", "timeout", true, "timeout in seconds");
-        options.addOption(timeOutOption);
-
-        Option limitOption = new Option("i", "limit", true, "output limit");
-        options.addOption(limitOption);
-
-        Option execOption = new Option("e", "exectime", true, "log execution time");
-        options.addOption(execOption);
 
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
