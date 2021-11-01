@@ -63,4 +63,8 @@ public class ComplexEvent implements Iterable<Event> {
     public void setStart(long newStart) {
         start = newStart;
     }
+
+    public long getEnd() {
+        return end;
+    }
 }

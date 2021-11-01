@@ -72,7 +72,7 @@ public class MatchCallback implements Consumer<CDSComplexEventGrouping> {
 
     private void printCallback(CDSComplexEventGrouping matches) {
         count = 0;
-//        System.err.println("Event " + matches.getLastEvent() + " triggered " + matches.size() + " different outputs:");
+        System.err.println("Event " + matches.getLastEvent() + " triggered matches:");
 //        Profiler.incrementMatches();
 
         for (ComplexEvent match: matches) {
@@ -81,14 +81,12 @@ public class MatchCallback implements Consumer<CDSComplexEventGrouping> {
             }
             if (match != null) {
                 Profiler.incrementMatches();
-//                System.err.print("\t");
-//                System.err.print("In interval [" + match.getStart() + ", " + match.getEnd() + "]: ");
-                match.forEach(event -> System.err.print(event + " "));
-                System.err.println();
+                System.err.print("\t");
+                System.err.print("In interval [" + match.getStart() + ", " + match.getEnd() + "]: ");
                 count++;
             }
         }
-//        System.err.println();
+        System.err.println();
     }
 
     private void writeCallback(CDSComplexEventGrouping matches) {
