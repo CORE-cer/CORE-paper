@@ -1,47 +1,53 @@
-# CORE
+# CORE - experiments
+
+### This branch contains a snapshot of the code used for the experiments on the paper. It is not meant to be used for anything else. 
 
 
-## Como ejecutarlo
-- Se deben definir las siguientes opciones para la Java VM:\
- `-Djava.security.manager -Djava.security.policy=path/to/java.policy`
-- Se deben incluir los argumentos para el programa, como minimo incluyendo [un queryfile y un streamsfile](#queryfile-y-streamsfile) con las opciones `-q` y `-s`:\
-`-q path/to/query.data -s path/to/streams.data`
-- Adicionalmente, se pueden configurar mas opciones al programa:\
-`-v`, `--verbose`: modo verbose.\
-`-f`, `--fastrun`: consumir los streams ignorando los timestamps de los eventos.\
-`-l`, `--logmetrics`: registrar estadisticas de ejecucion. Los archivos quedan en `files/measure/`.\
-`-o`, `--offline`: no levantar un servidor RMI para conexiones remotas.\
-La sintaxis de la CLI es detallada por esta misma.
+## Requirements
+1) Install java 11
+2) Install [gradle](https://gradle.org/)
 
-#### Desde InteliJ IDEA
+## Execution
+- Compile with gradle each time changes are made in the code. In the case of linux, move to root project directory and execute in a terminal ```/usr/bin/gradle fatjar```. This will create a fatjar file (.jar) which path will need to be passed as argument when the code is ran.
+- The following options to Java VM must be passed as arguments as well:
+  `-Djava.security.manager -Djava.security.policy=path/to/java.policy`
+- The following arguments for the program must be present, including at least [a queryfile and a streamsfile](#queryfile-and-streamsfile) with the options `-q` and `-s`:\
+  `-q path/to/query.data -s path/to/streams.data`
+- Aditionally, there are more parameters that you can pass to the program:\
+  `-v`, `--verbose`: verbose mode.\
+  `-f`, `--fastrun`: consume stream ignoring event timestamps.\
+  `-l`, `--logmetrics`: register execution statistics. The files remain on `files/measure/`.\
+  `-o`, `--offline`: Don't run a RMI server for remote execution.\
+  The syntax of the CLI is detailed by the CLI itself.
 
-Esto se puede configurar en Intelli
-J haciendo click derecho en el Main > Edit. Luego elegir Run.
+#### From InteliJ IDEA
 
-#### Desde linea de comandos (UNIX)
-Para ejecutar desde la linea de comandos se necesita el `jatJAR` del proyecto. Para obtenerlo, se debe ejecutar la task de Gradle llamda `fatJar`. El output es un archivo llamado `CORE-FAT-1.0-SNAPSHOT.jar`, dentro del directorio `build/libs/`. Este `fatJAR` contiene todo el codigo base del proyecto, ademas de todas las dependencias necesarias para que el codigo pueda ser ejecutado.
-Ejemplo para ejecutar desde linea de comandos UNIX:\
-`java  -Djava.security.manager -Djava.security.policy=java.policy -jar CORE-FAT-1.0-SNAPSHOT.jar -v -q ./example_queries/example2/query.data -s ./example_queries/example2/streams.data`
+This can be configured in IntelliJ making a right click in Main > Edit, then choosing Run.
+
+#### From command line (UNIX)
+To execute from command line, a `fatJAR`from the project is needed. To obtain it, you must execute the gradle task called `fatJar` with the command ```/usr/bin/gradle fatjar```. The output is a file called `CORE-FAT-1.0-SNAPSHOT.jar` inside directory `build/libs/`. This `fatJAR` contains all the base code from the project, and also all dependencies to allow code to be executed.
+Example from UNIX command line:
+`java  -Djava.security.manager -Djava.security.policy=files/java.policy -jar build/libs/CORE-FAT-1.0-SNAPSHOT.jar -v -q ./example_queries/example2/query.data -s ./example_queries/example2/streams.data`
 
 ## QueryFile y StreamsFile
 
-Son dos archivos de configuracion necesarios para correr CORE.
+Two configuration files needed to run CORE.
 
 #### QueryFile
 
-Indica de donde obtener la descripcion de los eventos y streams y desde donde cargar queries al iniciar el sistema (opcional). El archivo consta de, a lo mas, dos lineas con la siguiente estructura:
-- Linea 1: Ruta a archivo con declaraciones de EVENT y STREAM
-- Linea 2 (opcional): Ruta a queries de inicializacion
+A file wich points to where obtain the description of events of streams from and where to load queries when initializing the system from (the last one is optional). The file has, at most, two lines with the following structure:
+- First line: Path to file with EVENT and STREAM declarations.
+- Second line (optional): Path to initialization queries.
 
-Sintaxis: `SOURCE_TYPE:SOURCE_ADDRESS`\
-`SOURCE_TYPE` para la linea 1 solo soporta el tipo `FILE`, y la linea 2 soporta `FILE`, para cargar queries desde un archivo, y `CLI` para iniciar una interfaz por linea de comandos para ingresar queries al sistema. El modo `CLI` no necesita especificar `SOURCE_ADDRESS`.\
-Ejemplo de un QueryFile:
+Syntax: `SOURCE_TYPE:SOURCE_ADDRESS`\
+`SOURCE_TYPE` for line 1, only `FILE` type es supported. Line 2 supports `FILE` to load queryes from a file, and ` CLI` to start a command line interface, allowing to enter queries to the sistem in real time. In `CLI` mode you do not have to specify `SOURCE_ADDRESS`.\
+QueryFile Example:
 ```
 FILE:files/StreamDescription.txt
 FILE:files/queries.txt
 ```
 
-Ejemplo de `StreamDescription.txt`:
+The EVENT and STREAM declaration file has a line per stream type, with its name and its parameters. Example of `StreamDescription.txt`:
 ```
 DECLARE EVENT WindSpeed(id long, sitio string, value double)
 DECLARE EVENT WindDirection(id long, sitio string, value double)
@@ -50,7 +56,7 @@ DECLARE EVENT RelativeAirHumidity(id long, sitio string, value double)
 DECLARE STREAM S(WindSpeed, WindDirection, GustSpeed, RelativeAirHumidity)
 ```
 
-Ejemplo de `queries.txt` (queries van separadas por `";\n"`):
+The initialization queries file is the file that contains all the queries that shall be executed in the stream. Example of `queries.txt` (queries are separated by a newline):
 ```
 SELECT RelativeAirHumidity
 FROM S
@@ -65,10 +71,10 @@ WITHIN 1 MINUTE;
 
 #### StreamsFile
 
-Indica desde donde obtener los streams de datos. El archivo consta de `n` lineas, siendo `n` la cantidad de streams definidos en el paso anterior. Cada linea tiene la sintaxis `STREAM_NAME:SOURCE_TYPE:SOURCE_ADDRESS`.
-- `STREAM_NAME` es el nombre del stream definido en al paso anterior al que se le asignara una fuente de datos.
-- `SOURCE_TYPE` es el tipo de fuente, actualmente se soportan `FILE`, `CSV`, `SOCKET`, `APICSV`. Cada uno con diferentes formatos y utilidades. Referirse al paquete `engine.streams` para mas detalle. Se recomienda usar `CSV` pues es el mas simple, robusto y completo.
-- `SOURCE_ADDRESS` es la ruta o direccion a la fuente especificada.
+Indicates from where to obtain the data streams. The file has `n`lines, `n`being the number of streams defined in the previous step. Each line has the syntax `STREAM_NAME:SOURCE_TYPE:SOURCE_ADDRESS`.
+- `STREAM_NAME` is the name of the stream defined in the previous step, to which it will be assigned a data feed. If it is not defined, it will raise an exception.
+- `SOURCE_TYPE` is the type of feed. `FILE`, `CSV`, `SOCKET` and `APICSV` are actually supported. To see more details, refer to the package `engine.streams`. The recommended option is `CSV`, the simplest, more robust and complete.
+- `SOURCE_ADDRESS` is the path or direction of the specified stream.
 
 Ejemplo:
 ```
@@ -78,41 +84,39 @@ S2:CSV:./files/GruposQRyPolkura.csv
 
 # Server y Client
 
-CORE implementa una arquitectura Server/Client. El ejecutable principal, descrito en [el primer capitulo](#core), actua de servidor dando la posibilidad de conectarse a el remotamente para interactuar con el sistema. La comunicacion se lleva a cabo a traves del [protocolo RMI](https://es.wikipedia.org/wiki/Java_Remote_Method_Invocation).
+CORE implements a Server/Client architecture. The main executable, described in [the first chapter](#core), acts as a server giving the possibility to remotely connect, interacting with the system. The communication is made by the [RMI protocol](https://es.wikipedia.org/wiki/Java_Remote_Method_Invocation).
 
 ## Server
-El ejecutable principal, al iniciar, levanta un servidor RMI en el puerto 1099. Este escucha para que potenciales clientes se conecten y puedan, entre otras cosas: agregar y quitar queries, consultar el estado del sistema y obtener estadisticas de ejecucion.
+When the main executable is started, it runs a RMI server in the port 1099. The server listens possible clients, which will be allowed to add and remove queries, ask for system state and obtain execution statistics.
 
-La clase `BaseEngine` implementa una interfaz remota (`RemoteCOREInterface`), en la que se definen todas las acciones posibles a ejecutar desde un cliente. El paquete `engine.rmi` contiene dicha interfaz, ademas de una clase llamada `RemoteCOREClient` que se detalla en el [siguiente subcapitulo](#client).
+The `BaseEngine` class implements a remote interface (`RemoteCOREInterface`), in which are defined all the possible actions that can be executed from a client. The `engine.rmi` package contains that interface, and also a class called `RemoteCOREClient` which is detailed in the [next subchapter](#client)
 
 ## Client
-`RemoteCOREClient` simplemente encapsula la logica de conexion al servidor, de manera que la implementacion de un cliente mas elaborado (por ejemplo, por CLI o web) tenga ese paso solucionado. Para usarlo hay dos opciones: subclaseandolo e instanciandolo. El constructor recibe un argumento opcional, que es la direccon IP de la maquina donde el servidor esta corriendo. En caso de no entregarse argumento, el cliente buscara al servidor en la misma maquina. Esto convierte a este cliente RMI en la mejor y mas robusta forma de experimentar con el servidor localmente y de manera interactiva.
+`RemoteCORECLient` encapsulates the connection logic to the server, allowing the implementation of a more elaborate client (for example, the CLI or the web). To use it, you can instantiate it or make a subclass out of it. The constructor receives an additional argument, that is the IP address of the machine which the server is running. In the case that no argument is passed, the client will search the server in the same machine. This makes that RMI client the best and more robust way to experiment with the server locally and in an interactive way.
 
-Para ejecutar el cliente es necesario tener el codigo fuente de CORE empaquetado en un `JAR`. Para obtenerlo, hay que correr la task `build` de Gradle. Dentro del directorio `build/libs/` se creara un archivo llamado `core-1.0-SNAPSHOT.jar`. Este difiere del `fatJar` mencionado anteriormente en que no incluye las dependencias del proyecto en el paquete. Dicho `JAR` debe incluirse al classpath de la Java VM con el argumento `-cp`. En el directorio `COREClient` se incluye un script bash que muestra como incluir el `JAR` al classpath.
+To execute the client it is necessary to have the source code of CORE in a `JAR` file. To obtain it, you must use the `build` gradle task. Inside the `build/libs` directory, a file called `core-1.0-SNAPSHOT.jar` will be created. This is different from the `fatjar` because it does not include the project dependencies. Such `JAR` needs to be included in the classpath of the Java VM with the argument `-cp`. In the `COREClient` directory is included a bash script that shows how to include the `JAR` to the classpath.
 
 #### COREClient
-Se incluye un directorio llamado `COREClient` con un ejemplo basico funcional de un cliente, que instancia `RemoteCOREClient` y hace llamados a la API a traves de el. Si el codigo de CORE ha cambiado, hay que asegurarse de incluir en el directorio el `JAR` mas actualizado. Para ejecutarlo, [primero hay que levantar el servidor](#como-ejecutarlo), y luego correr el archivo `start_client.sh` entregandole, si esta corriendo remotamente, la direccion (IP o DNS) del servidor.\
-Ejemplo:\
+A directory called `COREClient` is included with a basic unctional example of a client, that instantiates `RemoteCOREClient` and makes some API calls through it. If the CORE code has changes, you must make sure that the most recent `JAR` is included. To execute it, [you must first run the server](#execution) and then run the file named `start_client.sh`, passing the address (IP or domain) of the server in the case it is running remotely.\
+Example:\
 `sh start_client.sh ciws.ing.puc.cl`\
-Si el servidor esta corriendo en el mismo computador:\
+If the server is running in the same computer:\
 `sh start_client.sh`
 
 #### MatchCallback
-Para obtener la descripcion de la API, hay que referirse a `RemoteCOREInterface`. Para agregar queries, se ofrece la utilidad de especificar como enumerar los resultados de dicha query, a traves de un `MatchCallbackType`. La clase `MatchCallback` incluye diferentes formas de enumerar ya disponibles, las que son representadas por un `MatchCallbackType` correspondiente. El cliente debera, por lo tanto, importar `MatchCallbackType` si desea definir como enumerar los resultados.\
-Se invita a incluir nuevos `MatchCallback` al codigo fuente.
-`MatchCallback`s actualmente implementados:
-- `PRINT`: imprime los matches a la consola del server.
-- `WRITE`: escribe los matches a un archivo. Se le puede entregar un argumento para especificar un nombre particular al archivo, en caso acontrario se registra a un archivo comun.
-- `EMAIL`: Envia los amtches por email. Se debe especificar la direccion email de destino como agumento.
+To obtain a description of the API, you must see `RemoteCOREInterface`. To add queries, you can specify how to enumerate the results of such query, through a `MatchCallbackType`. The class `MatchCallback` includes different ways to enumerate the results, which are represented by a corresponding `MatchCallbackType`. The client will need to import `MatchCallbackType` if it wishes to define how to enumerate the results. You can include more `MatchCallback` the the source code.\
+`MatchCallback`s implemented now:
+- `PRINT`: prints the matches in the server console.
+- `WRITE`: writes the matches to a file. You can pass an argument to specify a new file route, or leave the default.
+- `EMAIL`: Sends the matches through email. You must specify the email address where they must be sent.
 
 # JavaDoc
 
-IntelliJ IDEA ofrece la funcionalidad de generar documentacion interactiva del proyecto. Esto se hace en el menu `Run > Generate JavaDoc`. Esto crea un directorio al mismo nivel que CORE, llamado `javadoc`. Hay que abrir el `index.html` en un navegador.\
-Igualmente, se invita a seguir complementando la documentacion del codigo escribiendo comentarios que sigan la sintaxis de JavaDoc.
+IntelliJ IDEA offers a way to generate documentation of the project interactively. This is made from the `Run > Generate JavaDoc`menu. A directory in the same level as CORE is made, called `javadoc`. You must open the `index.html` file in a web browser. Also, you can complete the code documentation writing comments that follow the JavaDoc syntax.
 
 # Tests
 
-- Tests folders must be name 'Testn' with 'n' as the number of the test. 
+- Tests folders must be name 'Testn' with 'n' as the number of the test.
 - If there is Testn, there must be Testn-1, Testn-2, ..., Test1
 - Emphasis on Engine testing
 - Each test must have a QueryFile: query_test.data, StreamFile: streamtest.data, and an OutputFile: output.txt
