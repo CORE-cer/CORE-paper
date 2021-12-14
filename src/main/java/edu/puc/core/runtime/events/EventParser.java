@@ -23,7 +23,7 @@ public class EventParser {
         Object[] attrs = new Object[ev.getAttributes().size()];
         for (int i = 0; i < ev.getAttributes().size(); i++) {
             String[] temp = values[i].split("=");
-            String n = temp[0];
+            String n = temp[0].trim();
             String val = temp[1];
             ValueType valueType = ev.getAttributes().stream().filter(pair -> pair.getKey().equals(n)).findAny().get().getValue();
             if (valueType == ValueType.INTEGER) {

@@ -1,7 +1,7 @@
 # CORE
 ## Requirements
 1) Install java 11
-2) Install [gradle](https://gradle.org/)
+2) Install [gradle](https://gradle.org/) version 5.X.X
 
 ## Execution
 - Compile with gradle each time changes are made in the code. In the case of linux, move to root project directory and execute in a terminal ```/usr/bin/gradle fatjar```. This will create a fatjar file (.jar) which path will need to be passed as argument when the code is ran.

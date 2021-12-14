@@ -1,0 +1,7 @@
+SELECT *
+FROM S
+WHERE (T as t1 ; H + as hs ; H as h1)
+FILTER
+    (t1[temp < 0] AND
+     hs[hum < 60] AND
+     h1[hum > 60])

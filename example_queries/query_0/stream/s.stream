@@ -1,0 +1,7 @@
+T(temp=-2, city=barcelona)
+T(temp=-5, city=barcelona)
+T(temp=-10, city=barcelona)
+H(hum=30, city=barcelona)
+H(hum=20, city=barcelona)
+H(hum=10, city=barcelona)
+H(hum=65, city=barcelona)

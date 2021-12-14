@@ -1,0 +1,3 @@
+DECLARE EVENT T(temp double, city string)
+DECLARE EVENT H(hum double, city string)
+DECLARE STREAM S(T, H)

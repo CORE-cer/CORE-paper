@@ -149,3 +149,6 @@ gradle-app.setting
 
 # antlr4 generated code
 ./src/main/gen/
+
+gradle/
+.idea/
