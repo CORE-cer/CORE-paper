@@ -83,5 +83,6 @@ public class CDSComplexEventGroupingTest {
             assertEquals("ComplexEvent" + i, expectedComplexEvents[i], ce);
             ++i;
         }
+        assertEquals("Number of complex events", 3, i);
     }
 }

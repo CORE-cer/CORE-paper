@@ -43,19 +43,23 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
     }
 
     // TODO
-    // This iterator will modify the complex events after each iteration.
-    // Be careful, if you try to collect them in a stream, each CE will change as soon as you call next().
-    // In order to avoid this, you need to do a lot of copies.
+    // 1) This iterator will modify the complex events after each iteration.
+    //    Be careful, if you try to collect them in a stream, each CE will change as soon as you call next().
+    //    In order to avoid this, you need to do a lot of copies so we decided not to do that change.
+    // 2) The distributed enumeration may return 'null' between different CDS.
+    //    Just skip the null and the next 'next()' will return a proper complex event if there are remaining CDS.
     public Iterator<ComplexEvent> iterator(){
         return new Iterator<>() {
+            // TODO add as parameter
+            final int a = 2;
+            final int s = 0;
 
             final Iterator<CDSNode> CDSNodeIterator = CDSNodes.iterator();
             CDSNode current = CDSNodeIterator.next();
             final Stack<Triple<CDSNode, ComplexEventNode, Pair<Integer, Integer>>> stack = new Stack<>();
             ComplexEvent complexEvent = new ComplexEvent();
-            // TODO add as parameter
-            int remaining = 2;
-            int start = 0;
+            int a1 = a;
+            int s1 = s;
 
             @Override
             public boolean hasNext() {
@@ -79,15 +83,16 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
                         Triple<CDSNode, ComplexEventNode, Pair<Integer, Integer>> triplet = stack.pop();
                         current = triplet.a;
                         complexEvent.popUntil2(triplet.b);
+                        s1 = triplet.c.a;
+                        a1 = triplet.c.b;
                     } else if (current instanceof CDSOutputNode) {
                         CDSOutputNode temp = (CDSOutputNode) current;
                         if (temp.getTransitionType().isBlack()) {
                             complexEvent.push(temp.getEvent(), temp.getTransitionType());
                         } else {
-                            // TODO Does this ever happens?
-                            System.out.println("CDSComplexEventGrouping.java white transition.");
-                            Event toAdd = new Event(temp.getEvent().getIndex()); // Everything to null except the event index
-                            complexEvent.push(toAdd, temp.getTransitionType());
+                            throw new RuntimeException("Does this ever happen? Yes! Check this else-case.");
+//                            Event toAdd = new Event(temp.getEvent().getIndex()); // Everything to null except the event index
+//                            complexEvent.push(toAdd, temp.getTransitionType());
                         }
                         current = temp.getChild();
                         if (current.isBottom()) {
@@ -95,8 +100,30 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
                         }
                     } else if (current instanceof CDSUnionNode) {
                         CDSUnionNode temp = (CDSUnionNode) current;
-                        stack.push(new Triple<>(temp.getRight(), complexEvent.getHead(), null));
-                        current = temp.getLeft();
+                        CDSNode left = temp.getLeft();
+                        CDSNode right = temp.getRight();
+
+                        int a2;
+                        if (left.getPaths() > s1) {
+                            a2 =  a1 - Math.max(0, left.getPaths() - s1);
+                        } else {
+                            a2 = a1;
+                        }
+                        int s2 = s1 - left.getPaths();
+                        if (right.getPaths() > s2 && a2 > 0) {
+                            stack.push(new Triple<>(right, complexEvent.getHead(), new Pair<>(s2, a2)));
+                        }
+                        if (left.getPaths() > s1) {
+                            current = left;
+                        } else {
+                            if (!stack.isEmpty()) {
+                                // Workaround to force the stack case (first 'if')
+                                current = CDSNode.BOTTOM;
+                            } else {
+                                // Nothing left to do in this CDS.
+                                return null;
+                            }
+                        }
                     }
                 }
             }
