@@ -4,12 +4,17 @@ public abstract class CDSNode {
     public static final CDSNode BOTTOM = new CDSNode() {
         @Override
         public int getPaths() {
-            return 0;
+            return 1;
         }
 
         @Override
         public boolean isBottom() {
             return true;
+        }
+
+        @Override
+        public String toString() {
+            return "Bottom";
         }
     };
 

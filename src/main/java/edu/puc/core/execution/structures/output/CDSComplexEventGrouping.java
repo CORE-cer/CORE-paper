@@ -5,6 +5,8 @@ import edu.puc.core.execution.structures.CDS.CDSNode;
 import edu.puc.core.execution.structures.CDS.CDSOutputNode;
 import edu.puc.core.execution.structures.CDS.CDSUnionNode;
 import edu.puc.core.runtime.events.Event;
+import org.antlr.v4.runtime.misc.Pair;
+import org.antlr.v4.runtime.misc.Triple;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -40,84 +42,60 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
         return lastEvent;
     }
 
+    // TODO
+    // This iterator will modify the complex events after each iteration.
+    // Be careful, if you try to collect them in a stream, each CE will change as soon as you call next().
+    // In order to avoid this, you need to do a lot of copies.
     public Iterator<ComplexEvent> iterator(){
-        return new Iterator<ComplexEvent>() {
+        return new Iterator<>() {
 
             final Iterator<CDSNode> CDSNodeIterator = CDSNodes.iterator();
             CDSNode current = CDSNodeIterator.next();
-
-            final Stack<CDSUnionNode> DFSStack = new Stack<>();
-            final Stack<ComplexEventNode> jumpStack = new Stack<>();
-
+            final Stack<Triple<CDSNode, ComplexEventNode, Pair<Integer, Integer>>> stack = new Stack<>();
             ComplexEvent complexEvent = new ComplexEvent();
-            ComplexEventNode lastEvent;
-            boolean unionNodeLast = false;
-            boolean unionNodeLast2 = false;
+            // TODO add as parameter
+            int remaining = 2;
+            int start = 0;
 
             @Override
             public boolean hasNext() {
                 if (!current.isBottom()) {
                     return true;
                 }
-                if (!DFSStack.isEmpty()) {
+                if (!stack.isEmpty()) {
                     return true;
                 }
                 return CDSNodeIterator.hasNext();
             }
 
-            // This is the same enumeration algorithm from CORE paper (without time windows).
-            // But the implementation is not the same as the one from the paper (it can be translated though).
-            // It is weird how they implemented this... there must be a reason.
             @Override
             public ComplexEvent next() {
-                // We always start from a bottom except from the first call to next().
-                // DFSStack contains the union node where we picked the left path, and now we need to pick the right path.
-                //
-                // This is the case where we need to start enumerating from another final state node.
-                if (current.isBottom() && DFSStack.isEmpty()) {
+                if (current.isBottom() && stack.isEmpty()) {
                     complexEvent = new ComplexEvent();
                     current = CDSNodeIterator.next();
                 }
                 while (true) {
-                    if (current.isBottom()) { // Restart after output node found a next(n) = bottom.
-                        // DFSStack contains a union node for the right choice.
-                        current = DFSStack.pop().getRight();
-                        // jumpStack contains the complex event in the previous state.
-                        // Surprisingly, they do not push to the jump on the union case but on the output case.
-                        ComplexEventNode temp = jumpStack.pop();
-                        // This actually calls 'head = node.getNext();'
-                        // As you see on line 93 and 96, they are pushing lastEvent AFTER adding an output node
-                        // this forces them to call node.getNext(); to pop it...
-                        complexEvent.popUntil(temp);
+                    if (current.isBottom()) {
+                        Triple<CDSNode, ComplexEventNode, Pair<Integer, Integer>> triplet = stack.pop();
+                        current = triplet.a;
+                        complexEvent.popUntil2(triplet.b);
                     } else if (current instanceof CDSOutputNode) {
                         CDSOutputNode temp = (CDSOutputNode) current;
                         if (temp.getTransitionType().isBlack()) {
-                            lastEvent = complexEvent.push(temp.getEvent(), temp.getTransitionType());
+                            complexEvent.push(temp.getEvent(), temp.getTransitionType());
                         } else {
                             // TODO Does this ever happens?
                             System.out.println("CDSComplexEventGrouping.java white transition.");
                             Event toAdd = new Event(temp.getEvent().getIndex()); // Everything to null except the event index
-                            lastEvent = complexEvent.push(toAdd, temp.getTransitionType());
-                        }
-                        if (unionNodeLast) {
-                            jumpStack.push(lastEvent);
-                            unionNodeLast = false;
-                        }
-                        if (unionNodeLast2) {
-                            jumpStack.push(lastEvent);
-                            unionNodeLast2 = false;
+                            complexEvent.push(toAdd, temp.getTransitionType());
                         }
                         current = temp.getChild();
                         if (current.isBottom()) {
                             return complexEvent;
                         }
                     } else if (current instanceof CDSUnionNode) {
-                        if (unionNodeLast) {
-                            unionNodeLast2 = true;
-                        }
-                        unionNodeLast = true;
                         CDSUnionNode temp = (CDSUnionNode) current;
-                        DFSStack.push(temp);
+                        stack.push(new Triple<>(temp.getRight(), complexEvent.getHead(), null));
                         current = temp.getLeft();
                     }
                 }

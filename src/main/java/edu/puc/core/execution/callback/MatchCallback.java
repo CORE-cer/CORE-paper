@@ -16,6 +16,7 @@ import javax.mail.internet.MimeMessage;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.function.Consumer;
 
@@ -26,7 +27,7 @@ public class MatchCallback implements Consumer<CDSComplexEventGrouping> {
     private final String outputBaseDir = System.getProperty("user.dir") + "/files/output/" + jvmId + "_";
     private final Object[] args;
     private final MatchCallbackType type;
-    public static int limit = 10;
+    // public static int limit = 10;
     private int count = 0;
 
     public static MatchCallback getDefault() {
@@ -76,9 +77,9 @@ public class MatchCallback implements Consumer<CDSComplexEventGrouping> {
 //        Profiler.incrementMatches();
 
         for (ComplexEvent match: matches) {
-            if (count >= limit) {
-                break;
-            }
+//            if (count >= limit) {
+//                break;
+//            }
             if (match != null) {
                 Profiler.incrementMatches();
                 System.err.print("\t");

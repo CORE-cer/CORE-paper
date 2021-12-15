@@ -17,7 +17,7 @@ public class CDSOutputNode extends CDSNode {
         this.child = child;
         this.transitionType = transitionType;
         this.event = event;
-        this.paths = child.getPaths() + 1;
+        this.paths = child.getPaths();
     }
 
     public Event getEvent() {
