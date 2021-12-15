@@ -3,6 +3,7 @@ package edu.puc.core.execution.structures.states;
 import java.util.HashSet;
 import java.util.Set;
 
+/** Set of integers representing states */
 public class SimpleStateSet {
 
     protected final Set<Integer> stateSet;

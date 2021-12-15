@@ -11,11 +11,12 @@ public abstract class Traverser<S extends SimpleStateSet> {
     private Integer newStateNumber = 0;
     private boolean initialized = false;
 
+    // Each position corresponds to a state.
     List<Map<BitSet, StateTuple>> knownTransitionsList;
 
     Integer INITIAL;
 
-    private Map<SimpleStateSet, State<S>> stateSetToStateMap;
+    private Map<SimpleStateSet, State<S>> stateSetToStateMap; // From Set<Int> to State(contains the set of Ints)
     private final State<S> rejectState = new State<>(State.rejectionId);
     private final State<S> initialState = new State<>(0);
 

@@ -16,8 +16,8 @@ import java.util.*;
 
 public class SimpleExecutor extends BaseExecutor {
 
-    /* used to ignore non active states when updating state status map */
-    private Set<State<?>> activeStates;
+    // TODO this probably can be replaced with a states.keySet()
+    private Set<State<?>> activeStates; // Same as super.states but without the union-list.
 
     SimpleExecutor(Traverser traverser, BitSetGenerator bitSetGenerator, boolean discardPartials) {
         super(traverser, bitSetGenerator, discardPartials);
@@ -27,7 +27,7 @@ public class SimpleExecutor extends BaseExecutor {
     @Override
     void setupCleanExecutor() {
         states = new HashMap<>();
-        states.put(traverser.getInitialState(), CDSOutputNode.BOTTOM);
+        states.put(traverser.getInitialState(), CDSNode.BOTTOM);
 
         activeStates = new HashSet<>();
         activeStates.add(traverser.getInitialState());
@@ -37,8 +37,8 @@ public class SimpleExecutor extends BaseExecutor {
     public boolean sendEvent(Event event){
         /* same algorithm as old ANY */
         long startExecutionTime = System.nanoTime();
-        Set<State<?>> newStates = new HashSet<>();
-        Map<State<?>, CDSNode> _states = new HashMap<>();
+        Set<State<?>> newStates = new HashSet<>(); // activeStates'
+        Map<State<?>, CDSNode> _states = new HashMap<>(); // states'
         activeFinalStates = new HashSet<>();
 
         BitSet bitSet = bitSetGenerator.getBitSetFromEvent(event);
@@ -49,6 +49,7 @@ public class SimpleExecutor extends BaseExecutor {
             State<?> blackState = nextStates.getBlackState();
             State<?> whiteState = nextStates.getWhiteState();
 
+            // This rejectionState is similar to the empty set.
             if (!blackState.isRejectionState()) {
                 update(event, newStates, _states, currentState, blackState, Transition.TransitionType.BLACK);
                 if (blackState.isFinalState()) {
@@ -79,11 +80,14 @@ public class SimpleExecutor extends BaseExecutor {
 
     private void update(Event event, Set<State<?>> newStates, Map<State<?>, CDSNode> _states, State<?> currentState, State<?> state, Transition.TransitionType transitionType) {
         newStates.add(state);
+        // Algorithm 1. Lines 15-18
         CDSOutputNode newNode = new CDSOutputNode(states.get(currentState), transitionType, event);
         updateStates(_states, newNode, state);
     }
 
 
+    // This is Algorithm 1. procedure ADD
+    // But we don't use union-lists so it is a bit different.
     private void updateStates(Map<State<?>, CDSNode> _states, CDSNode newNode, State<?> state) {
         CDSNode stateCDS = _states.get(state);
         if (stateCDS != null) {

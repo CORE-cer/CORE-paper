@@ -142,6 +142,6 @@ public class Event {
 //            s.append("=");
 //            s.append(fields[i]);
 //        }
-        return name + "(id=" + fields[0] + ")";
+        return name + "(id=" + index + ")";
     }
 }

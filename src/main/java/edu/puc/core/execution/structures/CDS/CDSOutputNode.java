@@ -5,18 +5,19 @@ import edu.puc.core.runtime.events.Event;
 
 public class CDSOutputNode extends CDSNode {
 
-    public static final CDSNode BOTTOM = new CDSOutputNode();
+    private final Event event;
+    private final Transition.TransitionType transitionType;
+    private final CDSNode child;
 
-    private Event event;
-    private Transition.TransitionType transitionType;
-    private CDSNode child;
-
-    private CDSOutputNode() {}
+    // We could always compute paths from getPaths but this would need
+    // to traverse the whole structure, and we want to do it in constant time.
+    private final int paths;
 
     public CDSOutputNode(CDSNode child, Transition.TransitionType transitionType, Event event) {
         this.child = child;
         this.transitionType = transitionType;
         this.event = event;
+        this.paths = child.getPaths() + 1;
     }
 
     public Event getEvent() {
@@ -27,11 +28,17 @@ public class CDSOutputNode extends CDSNode {
         return transitionType;
     }
 
+    @Override
     public boolean isBottom() {
-        return this == BOTTOM;
+        return false;
     }
 
     public CDSNode getChild() {
         return child;
+    }
+
+    @Override
+    public int getPaths() {
+        return this.paths;
     }
 }

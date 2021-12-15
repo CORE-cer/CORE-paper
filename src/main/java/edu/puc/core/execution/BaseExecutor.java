@@ -24,9 +24,11 @@ public abstract class BaseExecutor {
 
     final Traverser traverser;
     final BitSetGenerator bitSetGenerator;
-    final boolean discardPartials;
+    final boolean discardPartials; // ANY(default) and PARTITION will discard the previous events and complex events from the state.
     final ExecutorWatcher watcher = new ExecutorWatcher();
 
+    // This corresponds to the hash table (states --> union-list) in Algorithm 1.
+    // But union-lists are not implemented, they directly use CDSNode.
     Map<State<?>, CDSNode> states;
     Collection<State<?>> activeFinalStates;
 
@@ -62,6 +64,7 @@ public abstract class BaseExecutor {
     void enumerate(Event triggeringEvent, long limit) {
         watcher.update();
         if (matchCallback != null) {
+            // CDSComplexEventGrouping implements the Algorithm 2 on an Iterator pattern.
             CDSComplexEventGrouping complexEventGrouping = new CDSComplexEventGrouping(triggeringEvent, limit);
             for (State<?> state : activeFinalStates) {
                 complexEventGrouping.addCDSNode(states.get(state));

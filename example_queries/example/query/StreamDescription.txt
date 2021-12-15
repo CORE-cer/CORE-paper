@@ -1,3 +1,0 @@
-DECLARE EVENT T(temp double)
-DECLARE EVENT H(hum double)
-DECLARE STREAM S(T, H)

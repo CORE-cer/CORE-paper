@@ -83,6 +83,8 @@ public class MatchCallback implements Consumer<CDSComplexEventGrouping> {
                 Profiler.incrementMatches();
                 System.err.print("\t");
                 System.err.print("In interval [" + match.getStart() + ", " + match.getEnd() + "]: ");
+                match.forEach(event -> System.err.print(event + " "));
+                System.err.println("");
                 count++;
             }
         }
