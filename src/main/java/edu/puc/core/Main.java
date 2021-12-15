@@ -6,10 +6,12 @@ import edu.puc.core.engine.executors.ExecutorManager;
 import edu.puc.core.engine.streams.StreamManager;
 import edu.puc.core.runtime.events.Event;
 
+import edu.puc.core.util.DistributionConfiguration;
 import edu.puc.core.util.StringUtils;
 import org.apache.commons.cli.*;
 
 import java.io.BufferedReader;
+import java.util.Optional;
 import java.util.logging.Level;
 
 
@@ -21,6 +23,9 @@ public class Main {
 
         BaseEngine.LOGGER.setLevel(cmd.hasOption("v") ? Level.INFO: Level.OFF);
         BaseEngine.LOGGER.info("Running on verbose mode");
+
+        /* Parse distribution options */
+        Optional<DistributionConfiguration> distributionConfiguration = DistributionConfiguration.parse(cmd.getOptionValue("d"));
 
         BufferedReader queryFile = StringUtils.getReader(cmd.getOptionValue("q"));
         BufferedReader streamsFile = StringUtils.getReader(cmd.getOptionValue("s"));
@@ -41,7 +46,7 @@ public class Main {
          */
 
         /* Create executor manager */
-        ExecutorManager executorManager = ExecutorManager.fromCOREFile(queryFile);
+        ExecutorManager executorManager = ExecutorManager.fromCOREFile(queryFile, distributionConfiguration);
 
         /* Create stream manager */
         StreamManager streamManager = StreamManager.fromCOREFile(streamsFile);
@@ -83,6 +88,10 @@ public class Main {
 
         Option offlineOption = new Option("o", "offline", false, "offline mode, don't start RMI server");
         options.addOption(offlineOption);
+
+        // i,j where i = index and j = #workers
+        Option distributedOption = new Option("d", "distribution", true, "distributed enumeration");
+        options.addOption(distributedOption);
 
         Option queryfileOption = new Option("q", "queryfile", true, "queryfile file path");
         queryfileOption.setRequired(true);

@@ -11,10 +11,12 @@ import edu.puc.core.parser.plan.query.ConsumptionPolicy;
 import edu.puc.core.parser.plan.query.TimeWindow;
 import edu.puc.core.runtime.events.Event;
 import edu.puc.core.runtime.predicates.BitSetGenerator;
+import edu.puc.core.util.DistributionConfiguration;
 import org.json.JSONObject;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public abstract class BaseExecutor {
@@ -26,6 +28,7 @@ public abstract class BaseExecutor {
     final BitSetGenerator bitSetGenerator;
     final boolean discardPartials; // ANY(default) and PARTITION will discard the previous events and complex events from the state.
     final ExecutorWatcher watcher = new ExecutorWatcher();
+    Optional<DistributionConfiguration> distributionConfiguration = Optional.empty();
 
     // This corresponds to the hash table (states --> union-list) in Algorithm 1.
     // But union-lists are not implemented, they directly use CDSNode.
@@ -65,7 +68,7 @@ public abstract class BaseExecutor {
         watcher.update();
         if (matchCallback != null) {
             // CDSComplexEventGrouping implements the Algorithm 2 on an Iterator pattern.
-            CDSComplexEventGrouping complexEventGrouping = new CDSComplexEventGrouping(triggeringEvent, limit);
+            CDSComplexEventGrouping complexEventGrouping = new CDSComplexEventGrouping(triggeringEvent, limit, this.distributionConfiguration);
             for (State<?> state : activeFinalStates) {
                 complexEventGrouping.addCDSNode(states.get(state));
             }
@@ -104,6 +107,10 @@ public abstract class BaseExecutor {
 
     public void setQuery(String query) {
         this.query = query;
+    }
+
+    public void setDistributionConfiguration(Optional<DistributionConfiguration> distributionConfiguration) {
+        this.distributionConfiguration = distributionConfiguration;
     }
 
     public ExecutorWatcher getWatcher() {

@@ -8,12 +8,14 @@ import edu.puc.core.parser.CompoundStatementParser;
 import edu.puc.core.parser.DeclarationParser;
 import edu.puc.core.parser.QueryParser;
 import edu.puc.core.parser.plan.LogicalPlan;
+import edu.puc.core.util.DistributionConfiguration;
 import edu.puc.core.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -22,17 +24,18 @@ public class ExecutorManager {
     private final CompoundStatementParser parser;
     private final Supplier<String> querySupplier;
     private Consumer<CDSComplexEventGrouping> defaultMatchCallback = MatchCallback.getDefault();
+    private final Optional<DistributionConfiguration> distributionConfiguration;
 
-    public ExecutorManager(CompoundStatementParser parser) throws IOException {
-        this(parser, null);
-    }
-
-    public ExecutorManager(CompoundStatementParser parser, Supplier<String> querySupplier) throws IOException {
+    public ExecutorManager(CompoundStatementParser parser, Supplier<String> querySupplier, Optional<DistributionConfiguration> distributionConfiguration) {
         this.parser = parser;
         this.querySupplier = querySupplier;
+        this.distributionConfiguration = distributionConfiguration;
     }
 
-    public static ExecutorManager fromCOREFile(BufferedReader queryFile) throws IOException {
+    public static ExecutorManager fromCOREFile(
+            BufferedReader queryFile,
+            Optional<DistributionConfiguration> distributionConfiguration
+    ) throws IOException {
         String line;
         line = queryFile.readLine();
 
@@ -72,7 +75,7 @@ public class ExecutorManager {
             }
         }
 
-        return new ExecutorManager(parser, querySupplier);
+        return new ExecutorManager(parser, querySupplier, distributionConfiguration);
     }
 
     public void start() {
@@ -88,12 +91,8 @@ public class ExecutorManager {
         while (!Thread.currentThread().isInterrupted()) {
             query = querySupplier.get();
             if (query == null) return;
-            newExecutor(query);
+            newExecutor(query, defaultMatchCallback);
         }
-    }
-
-    public BaseExecutor newExecutor(String query) {
-        return newExecutor(query, defaultMatchCallback);
     }
 
     public BaseExecutor newExecutor(String name, String query) {
@@ -114,7 +113,7 @@ public class ExecutorManager {
 
         executor.setMatchCallback(callback);
         executor.setQuery(query);
-
+        executor.setDistributionConfiguration(distributionConfiguration);
 
         BaseEngine.LOGGER.info("newExecutor() with name " + name);
 

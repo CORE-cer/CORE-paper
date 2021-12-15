@@ -9,6 +9,7 @@ import edu.puc.core.execution.callback.MatchCallbackType;
 import edu.puc.core.execution.structures.output.CDSComplexEventGrouping;
 import edu.puc.core.parser.plan.Stream;
 import edu.puc.core.runtime.events.Event;
+import edu.puc.core.util.DistributionConfiguration;
 import org.json.JSONObject;
 
 import java.lang.management.ManagementFactory;
@@ -16,10 +17,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -32,10 +30,6 @@ public abstract class BaseEngine implements RemoteCOREInterface {
 
     protected ExecutorManager executorManager;
     protected StreamManager streamManager;
-
-    public static Engine newEngine(ExecutorManager executorManager, StreamManager streamManager) throws Exception {
-        return newEngine(executorManager, streamManager, false, false, false);
-    }
 
     public static Engine newEngine(ExecutorManager executorManager, StreamManager streamManager, boolean logMetrics, boolean fastRun, boolean offline)
             throws Exception {

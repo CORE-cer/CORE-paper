@@ -11,6 +11,7 @@ import static org.junit.Assert.*;
 import org.apache.commons.collections.IteratorUtils;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -54,7 +55,7 @@ public class CDSComplexEventGroupingTest {
 
     @BeforeClass
     public static void setUp() {
-        complexEventGrouping = new CDSComplexEventGrouping(event3, 0);
+        complexEventGrouping = new CDSComplexEventGrouping(event3, 0, Optional.empty());
         complexEventGrouping.addCDSNode(getCDS());
 
         complexEvent1 = new ComplexEvent();

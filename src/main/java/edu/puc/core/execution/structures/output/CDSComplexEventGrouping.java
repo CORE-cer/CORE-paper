@@ -5,13 +5,11 @@ import edu.puc.core.execution.structures.CDS.CDSNode;
 import edu.puc.core.execution.structures.CDS.CDSOutputNode;
 import edu.puc.core.execution.structures.CDS.CDSUnionNode;
 import edu.puc.core.runtime.events.Event;
+import edu.puc.core.util.DistributionConfiguration;
 import org.antlr.v4.runtime.misc.Pair;
 import org.antlr.v4.runtime.misc.Triple;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 
 // This is basically an iterator from final state nodes.
 // The iterator will give you a list of Complex Events using the enumeration Algorithm 2.
@@ -20,10 +18,12 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
     private Event lastEvent;
     private long limit;
     private List<CDSNode> CDSNodes;
+    private Optional<DistributionConfiguration> distributionConfiguration;
 
-    public CDSComplexEventGrouping(Event currentEvent, long limit){
+    public CDSComplexEventGrouping(Event currentEvent, long limit, Optional<DistributionConfiguration> distributionConfiguration){
         this.lastEvent = currentEvent;
         this.limit = limit;
+        this.distributionConfiguration = distributionConfiguration;
         totalMatches = 0;
         CDSNodes = new ArrayList<>();
     }
@@ -42,7 +42,6 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
         return lastEvent;
     }
 
-    // TODO
     // 1) This iterator will modify the complex events after each iteration.
     //    Be careful, if you try to collect them in a stream, each CE will change as soon as you call next().
     //    In order to avoid this, you need to do a lot of copies so we decided not to do that change.
@@ -50,16 +49,13 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
     //    Just skip the null and the next 'next()' will return a proper complex event if there are remaining CDS.
     public Iterator<ComplexEvent> iterator(){
         return new Iterator<>() {
-            // TODO add as parameter
-            final int a = 2;
-            final int s = 0;
-
             final Iterator<CDSNode> CDSNodeIterator = CDSNodes.iterator();
             CDSNode current = CDSNodeIterator.next();
             final Stack<Triple<CDSNode, ComplexEventNode, Pair<Integer, Integer>>> stack = new Stack<>();
             ComplexEvent complexEvent = new ComplexEvent();
-            int a1 = a;
-            int s1 = s;
+            final Pair<Integer, Integer> enumerationParameters = getEnumerationParameters(current.getPaths());
+            int a1 = enumerationParameters.a;
+            int s1 = enumerationParameters.b;
 
             @Override
             public boolean hasNext() {
@@ -77,6 +73,9 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
                 if (current.isBottom() && stack.isEmpty()) {
                     complexEvent = new ComplexEvent();
                     current = CDSNodeIterator.next();
+                    final Pair<Integer, Integer> enumerationParameters = getEnumerationParameters(current.getPaths());
+                    a1 = enumerationParameters.a;
+                    s1 = enumerationParameters.b;
                 }
                 while (true) {
                     if (current.isBottom()) {
@@ -103,16 +102,16 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
                         CDSNode left = temp.getLeft();
                         CDSNode right = temp.getRight();
 
-                        int a2;
-                        if (left.getPaths() > s1) {
-                            a2 =  a1 - Math.max(0, left.getPaths() - s1);
-                        } else {
-                            a2 = a1;
+                        // Right branch
+                        {
+                            int a2 = (left.getPaths() > s1) ? (a1 - Math.max(0, left.getPaths() - s1)) : a1;
+                            int s2 = Math.max(0, s1 - left.getPaths());
+                            if (right.getPaths() > s2 && a2 > 0) {
+                                stack.push(new Triple<>(right, complexEvent.getHead(), new Pair<>(s2, a2)));
+                            }
                         }
-                        int s2 = s1 - left.getPaths();
-                        if (right.getPaths() > s2 && a2 > 0) {
-                            stack.push(new Triple<>(right, complexEvent.getHead(), new Pair<>(s2, a2)));
-                        }
+
+                        // Left branch
                         if (left.getPaths() > s1) {
                             current = left;
                         } else {
@@ -126,6 +125,14 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
                         }
                     }
                 }
+            }
+
+            // Returns a Pair<a, s> corresponding to the parameters from the paper.
+            private Pair<Integer, Integer> getEnumerationParameters(int paths) {
+                DistributionConfiguration tmp = distributionConfiguration.orElse(DistributionConfiguration.DEFAULT);
+                int a = (int) Math.ceil((double) paths / (double) tmp.processes);
+                int s = a * tmp.process;
+                return new Pair<>(a, s);
             }
         };
     }

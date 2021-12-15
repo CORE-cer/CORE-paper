@@ -5,6 +5,7 @@ import edu.puc.core.engine.streams.StreamManager;
 import edu.puc.core.execution.structures.output.CDSComplexEventGrouping;
 import edu.puc.core.parser.plan.Event;
 import edu.puc.core.parser.plan.Stream;
+import edu.puc.core.util.DistributionConfiguration;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -88,7 +89,7 @@ public class EngineDeclaration {
 
         String queryFile = "./src/test/java/edu/puc/core/engine/test_files/Test" + Integer.toString(numberOfTests) + "/query_test.data";
         String streamFile = "./src/test/java/edu/puc/core/engine/test_files/Test" + Integer.toString(numberOfTests) + "/stream_test.data";
-        ExecutorManager executorManager = ExecutorManager.fromCOREFile(getReader(queryFile));
+        ExecutorManager executorManager = ExecutorManager.fromCOREFile(getReader(queryFile), Optional.empty());
         StreamManager streamManager = StreamManager.fromCOREFile(getReader(streamFile));
         engine = new Engine(executorManager, streamManager); //engine for the test
         BaseEngine.LOGGER.info("Initializing MultiEngine");
