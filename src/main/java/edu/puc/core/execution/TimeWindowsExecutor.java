@@ -3,7 +3,7 @@ package edu.puc.core.execution;
 import edu.puc.core.execution.cea.Traverser;
 import edu.puc.core.execution.structures.CDS.time.CDSNodeManager;
 import edu.puc.core.execution.structures.CDS.time.CDSTimeNode;
-import edu.puc.core.execution.structures.nodelist.NodeList;
+import edu.puc.core.execution.structures.nodelist.UnionList;
 import edu.puc.core.execution.structures.output.CDSTimeComplexEventGrouping;
 import edu.puc.core.execution.structures.states.State;
 import edu.puc.core.execution.structures.states.StateTuple;
@@ -14,22 +14,19 @@ import edu.puc.core.runtime.predicates.BitSetGenerator;
 import edu.puc.core.runtime.profiling.Profiler;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 public class TimeWindowsExecutor extends BaseExecutor {
 
+    private long currentTime;
     private final TimeWindow timeWindow;
     private final long windowDelta;
-    private long currentTime;
     private CDSNodeManager manager;
-    private int count;
-
-    private Map<State<?>, NodeList> states;
+    private Map<State<?>, UnionList> states;
     private ArrayList<State<?>> orderedStateList;
 
-    private State<?> qinit;
-
-    private final int PRUNE_LIMIT = 1000;
-
+    private int count;
+    private final int PRUNE_THRESHOLD = 1000;
 
     TimeWindowsExecutor(Traverser traverser, BitSetGenerator bitSetGenerator, boolean discardPartials, TimeWindow timeWindow) {
         super(traverser, bitSetGenerator, discardPartials);
@@ -53,28 +50,28 @@ public class TimeWindowsExecutor extends BaseExecutor {
 
     @Override
     void setupCleanExecutor() {
-        states = new HashMap<>();
-
         count = 0;
+        states = new HashMap<>();
         manager = new CDSNodeManager();
-
-        qinit = traverser.getInitialState();
         orderedStateList = new ArrayList<>();
     }
 
-    private void startNewRun() {
-        NodeList initList = new NodeList(manager);
-        initList.addSorted(manager.createBottomNode(currentTime));
-        states.put(qinit, initList);
+    @Override
+    public boolean sendEvent(Event event) {
+        return evaluation(event);
     }
 
-    @Override
-    public boolean sendEvent(Event event){
-        /* same algorithm as old ANY */
+    private void startNewRun() {
+        UnionList ul = new UnionList(manager);
+        ul.insert(manager.createBottomNode(currentTime));
+        states.put(traverser.getInitialState(), ul);
+    }
+
+    private boolean evaluation(Event event) {
         long startExecutionTime = System.nanoTime();
         updateTime(event);
         ArrayList<State<?>> newOrderedStateList = new ArrayList<>();
-        Map<State<?>, NodeList> _states = new HashMap<>();
+        Map<State<?>, UnionList> _states = new HashMap<>();
         activeFinalStates = new HashSet<>();
         boolean enumerated = false;
 
@@ -82,12 +79,13 @@ public class TimeWindowsExecutor extends BaseExecutor {
 
         BitSet bitSet = bitSetGenerator.getBitSetFromEvent(event);
 
-        updateNextStates(event, newOrderedStateList, _states, bitSet, qinit);
+        execTrans(event, newOrderedStateList, _states, bitSet, traverser.getInitialState());
         for (State<?> currentState : orderedStateList) {
+            // Only process if the union-list referenced is not null and inside the time-windows.
             if (states.get(currentState).getHead() == null || states.get(currentState).getHead().getMm() - currentTime > windowDelta) {
                 break;
             }
-            updateNextStates(event, newOrderedStateList, _states, bitSet, currentState);
+            execTrans(event, newOrderedStateList, _states, bitSet, currentState);
         }
 
         states = _states;
@@ -104,8 +102,7 @@ public class TimeWindowsExecutor extends BaseExecutor {
 
         long startPruneTime = System.nanoTime();
         count++;
-        if (count > PRUNE_LIMIT) {
-
+        if (count > PRUNE_THRESHOLD) {
             manager.prune(currentTime, windowDelta);
             count = 0;
             Profiler.incrementCleanUps();
@@ -114,22 +111,45 @@ public class TimeWindowsExecutor extends BaseExecutor {
         return enumerated;
     }
 
-    private void updateNextStates(Event event, ArrayList<State<?>> newOrderedStateList, Map<State<?>, NodeList> _states, BitSet bitSet, State<?> currentState) {
+    private void execTrans(Event event, ArrayList<State<?>> newOrderedStateList, Map<State<?>, UnionList> _states, BitSet bitSet, State<?> currentState) {
         StateTuple nextStates = traverser.nextState(currentState, bitSet);
         State<?> blackState = nextStates.getBlackState();
         State<?> whiteState = nextStates.getWhiteState();
 
+        // In the paper black comes before white
         if (!whiteState.isRejectionState()) {
-            updateWhiteState(newOrderedStateList, _states, states.get(currentState), whiteState);
+            UnionList ul = states.get(currentState);
+            add(whiteState, _states, ul::merge, ul, newOrderedStateList);
         }
 
+        // Why only black triggers complex event enumeration?
         if (!blackState.isRejectionState()) {
-            update(event, newOrderedStateList, _states, currentState, blackState, Transition.TransitionType.BLACK);
+            CDSTimeNode n = manager.createOutputNode(states.get(currentState).merge(), Transition.TransitionType.BLACK, event, currentTime);
+            UnionList ul = new UnionList(manager);
+            ul.insert(n);
+            add(blackState, _states, () -> n, ul, newOrderedStateList);
+
             if (blackState.isFinalState()) {
                 activeFinalStates.add(blackState);
             }
         }
 
+    }
+
+    private void add(
+            State<?> q,
+            Map<State<?>, UnionList> _states,
+            Supplier<CDSTimeNode> n,
+            UnionList ul,
+            ArrayList<State<?>> newOrderedStateList
+    ) {
+        UnionList stateNodeList = _states.get(q);
+        if (stateNodeList == null) {
+            newOrderedStateList.add(q);
+            _states.put(q, ul);
+        } else {
+            stateNodeList.insert(n.get());
+        }
     }
 
     private void updateTime(Event event) {
@@ -146,43 +166,17 @@ public class TimeWindowsExecutor extends BaseExecutor {
         }
     }
 
-    private void update(Event event, ArrayList<State<?>> newOrderedStateList, Map<State<?>, NodeList> _states, State<?> currentState, State<?> state, Transition.TransitionType transitionType) {
-        CDSTimeNode newNode = manager.createOutputNode(states.get(currentState).merge(), transitionType, event, currentTime);
-        updateStates(newOrderedStateList, _states, newNode, state);
-    }
-
-    private void updateStates(ArrayList<State<?>> newOrderedStateList, Map<State<?>, NodeList> _states, CDSTimeNode newNode, State<?> state) {
-        if (currentTime - newNode.getMm() >= windowDelta) {
-            return;
+    // Check that the union-list is inside the time windows
+    private boolean checkFirstMatch() {
+        for (State<?> state : activeFinalStates) {
+            UnionList current = states.get(state);
+            if (current != null) {
+                if (currentTime - current.merge().getMm() < windowDelta) {
+                    return true;
+                }
+            }
         }
-        NodeList stateNodeList = _states.get(state);
-
-        if (stateNodeList != null) {
-            /* If we already added the node, then we update the node list */
-            stateNodeList.addSorted(newNode);
-            return;
-        }
-
-        /* If we haven't added the node to the state map, we add it to the ordered list too */
-        newOrderedStateList.add(state);
-
-        /* Create and put the new Node List */
-        NodeList newNodeList = new NodeList(manager);
-        newNodeList.addSorted(newNode);
-        _states.put(state, newNodeList);
-    }
-
-    private void updateWhiteState(ArrayList<State<?>> newOrderedStateList, Map<State<?>, NodeList> _states, NodeList oldList, State<?> state) {
-        NodeList stateNodeList = _states.get(state);
-
-        if (stateNodeList != null) {
-            /* If we already added the node, then we update the node list */
-            stateNodeList.addSorted(oldList.merge());
-            return;
-        }
-
-        newOrderedStateList.add(state);
-        _states.put(state, oldList);
+        return false;
     }
 
     @Override
@@ -197,7 +191,7 @@ public class TimeWindowsExecutor extends BaseExecutor {
             CDSTimeComplexEventGrouping complexEventGrouping = new CDSTimeComplexEventGrouping(triggeringEvent, limit, windowDelta, currentTime);
             boolean added = false;
             for (State<?> state : activeFinalStates) {
-                NodeList current = states.get(state);
+                UnionList current = states.get(state);
                 if (current != null) {
                     complexEventGrouping.addCDSNode(current.merge());
                     added = true;
@@ -210,17 +204,5 @@ public class TimeWindowsExecutor extends BaseExecutor {
         if (discardPartials) {
             setupCleanExecutor();
         }
-    }
-
-    private boolean checkFirstMatch() {
-        for (State<?> state : activeFinalStates) {
-            NodeList current = states.get(state);
-            if (current != null) {
-                if (currentTime - current.merge().getMm() < windowDelta) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 }

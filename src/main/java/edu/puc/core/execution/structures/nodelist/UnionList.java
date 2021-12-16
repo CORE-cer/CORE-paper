@@ -6,16 +6,18 @@ import edu.puc.core.execution.structures.CDS.time.CDSTimeUnionNode;
 
 import java.util.ArrayList;
 
-public class NodeList {
+/** Union-list */
+public class UnionList {
 
     private final ArrayList<CDSTimeNode> nodeList;
     private final CDSNodeManager manager;
 
-    public NodeList(CDSNodeManager manager) {
+    public UnionList(CDSNodeManager manager) {
         nodeList = new ArrayList<>();
         this.manager = manager;
     }
 
+    /** merge(ul) */
     public CDSTimeNode merge() {
         if (nodeList.isEmpty()) {
             return null;
@@ -32,21 +34,23 @@ public class NodeList {
         }
     }
 
-    public void addSorted(CDSTimeNode newNode) {
+    /** insert(ul, n) */
+    public void insert(CDSTimeNode newNode) {
         if (nodeList.isEmpty()) {
             nodeList.add(newNode);
         } else {
             for (int i = nodeList.size() - 2; i >= 0; i--) {
                 CDSTimeNode current = nodeList.get(i);
                 if (newNode.getMm() == current.getMm()) {
+                    // Order of createUnionNode doesn't matter.
                     nodeList.set(i, manager.createUnionNode(newNode, current));
                     return;
                 } else if (newNode.getMm() > current.getMm()) {
-                    nodeList.add(i, newNode);
+                    nodeList.add(i, newNode); // shifts to the right
                     return;
                 }
             }
-            nodeList.add(0, newNode);
+            nodeList.add(1, newNode);
         }
     }
 

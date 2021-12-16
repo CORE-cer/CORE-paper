@@ -1,5 +1,6 @@
 package edu.puc.core.execution.structures.output;
 
+import edu.puc.core.execution.structures.CDS.time.CDSTimeBottomNode;
 import edu.puc.core.execution.structures.CDS.time.CDSTimeNode;
 import edu.puc.core.execution.structures.CDS.time.CDSTimeOutputNode;
 import edu.puc.core.execution.structures.CDS.time.CDSTimeUnionNode;
@@ -110,7 +111,7 @@ public class CDSTimeComplexEventGrouping extends CDSComplexEventGrouping impleme
                         }
                         current = temp.getChild();
                         if (current == null) {
-                            current = CDSTimeOutputNode.BOTTOM;
+                            current = CDSTimeBottomNode.BOTTOM;
                             continue;
                         }
                         if (current.isBottom() && currentTime - temp.getMm() < windowDelta) {
@@ -118,11 +119,11 @@ public class CDSTimeComplexEventGrouping extends CDSComplexEventGrouping impleme
                             return complexEvent;
                         }
                         if (currentTime - current.getMm() >= windowDelta) {
-                            current = CDSTimeOutputNode.BOTTOM;
+                            current = CDSTimeBottomNode.BOTTOM;
                         }
                     } else if (current instanceof CDSTimeUnionNode) {
                         if (currentTime - current.getMm() >= windowDelta) {
-                            current = CDSTimeOutputNode.BOTTOM;
+                            current = CDSTimeBottomNode.BOTTOM;
                             continue;
                         }
                         if (unionNodeLast) {

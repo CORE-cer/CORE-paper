@@ -2,6 +2,7 @@ package edu.puc.core.execution.structures.CDS.time;
 
 import java.util.Iterator;
 
+/** Linked list of T that is only used by CDSNodeManager to keep strong references to the nodes */
 public class LinkedNodeList implements Iterable<LinkedNode> {
 
     private LinkedNode head;

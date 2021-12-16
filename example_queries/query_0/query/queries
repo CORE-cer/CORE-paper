@@ -5,3 +5,4 @@ FILTER
     (t1[temp < 0] AND
      hs[hum < 60] AND
      h1[hum > 60])
+WITHIN 1000 EVENTS

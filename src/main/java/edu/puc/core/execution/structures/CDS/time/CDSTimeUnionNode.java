@@ -6,36 +6,46 @@ public class CDSTimeUnionNode extends CDSTimeNode {
 
     private final WeakReference<CDSTimeNode> left;
     private final WeakReference<CDSTimeNode> right;
-
+    private final long mm;
+    private final int paths;
 
     CDSTimeUnionNode(WeakReference<CDSTimeNode> left, WeakReference<CDSTimeNode> right) {
         CDSTimeNode tempLeft = left.get();
-        if (tempLeft != null) {
-            this.mm = tempLeft.getMm();
-        }
+        CDSTimeNode tempRight = left.get();
         this.left = left;
         this.right = right;
+        this.mm = tempLeft != null ? tempLeft.getMm() : 0;
+        this.paths = (tempLeft != null ? tempLeft.getPaths() : 0) + (tempRight != null ? tempRight.getPaths() : 0);
     }
 
-
     public CDSTimeNode getRight() {
-        return right.get();
+        return this.right.get();
     }
 
     public WeakReference<CDSTimeNode> getRightReference() {
-        return right;
+        return this.right;
     }
 
     public WeakReference<CDSTimeNode> getLeftReference() {
-        return left;
+        return this.left;
     }
 
     public CDSTimeNode getLeft() {
-        return left.get();
+        return this.left.get();
     }
 
     @Override
     public boolean isBottom() {
         return false;
+    }
+
+    @Override
+    public long getMm() {
+        return this.mm;
+    }
+
+    @Override
+    public int getPaths() {
+        return this.paths;
     }
 }

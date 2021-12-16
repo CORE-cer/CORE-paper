@@ -18,7 +18,7 @@ public abstract class CDSNode {
         }
     };
 
-    /** The number of paths below this */
+    /** The number of paths from this node */
     abstract public int getPaths();
 
     abstract public boolean isBottom();

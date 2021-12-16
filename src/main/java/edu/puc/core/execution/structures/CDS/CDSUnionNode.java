@@ -20,9 +20,6 @@ public class CDSUnionNode extends CDSNode {
             } else {
                 CDSUnionNode tempLeft = (CDSUnionNode) left;
                 CDSUnionNode tempRight = (CDSUnionNode) right;
-                // TODO
-                // In the paper here they were comparing max(left.right) <= max(right.right) but max is missing in the DS.
-                // So they always picks max(left.right) >= max(right.right) [Figure 5(c)].
                 CDSUnionNode u2 = new CDSUnionNode(tempLeft.getRight(), tempRight.getRight());
                 CDSUnionNode u1 = new CDSUnionNode(tempRight.getLeft(), u2);
                 this.left = tempLeft.getLeft();

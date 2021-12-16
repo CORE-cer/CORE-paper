@@ -4,24 +4,18 @@ import edu.puc.core.parser.plan.cea.Transition;
 import edu.puc.core.runtime.events.Event;
 
 public class CDSTimeOutputNode extends CDSTimeNode {
-
-    public static final CDSTimeNode BOTTOM = new CDSTimeOutputNode();
-
-    private Event event;
-    private Transition.TransitionType transitionType;
-    private CDSTimeNode child;
-
-    private CDSTimeOutputNode() {}
+    final private Event event;
+    final private Transition.TransitionType transitionType;
+    final private CDSTimeNode child;
+    final private int paths;
+    final private long mm;
 
     CDSTimeOutputNode(CDSTimeNode child, Transition.TransitionType transitionType, Event event, long currentTime) {
-        if (child == BOTTOM) {
-            this.mm = currentTime;
-        } else {
-            this.mm = child.getMm();
-        }
         this.child = child;
         this.transitionType = transitionType;
         this.event = event;
+        this.mm = currentTime;
+        this.paths = child.getPaths();
     }
 
     public Event getEvent() {
@@ -32,11 +26,22 @@ public class CDSTimeOutputNode extends CDSTimeNode {
         return transitionType;
     }
 
-    public boolean isBottom() {
-        return this == BOTTOM;
+    public CDSTimeNode getChild() {
+        return this.child;
     }
 
-    public CDSTimeNode getChild() {
-        return child;
+    @Override
+    public boolean isBottom() {
+        return false;
+    }
+
+    @Override
+    public long getMm() {
+        return this.mm;
+    }
+
+    @Override
+    public int getPaths() {
+        return this.paths;
     }
 }
