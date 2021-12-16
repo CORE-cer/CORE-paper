@@ -1,4 +1,5 @@
-- [ ] CDSComplexEventGroupingTest:
-  - [ ] Add new test about enumeration.
-- [ ] Fix tests to verify the enumeration works.
+## TODO
+
 - [ ] Start working on the scala project DCORE.
+
+## Bugs

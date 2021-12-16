@@ -51,7 +51,7 @@ public class EngineDeclaration {
 
     @Parameters(name = "number of folders of tests")
     public static Collection<Object[]> data() {
-        //return Arrays.asList(new Object[][]{{1}, {2}, {3}}); use if you would rather use only test 1, 2 and 3
+//        return Arrays.asList(new Object[][]{{1}}); // use if you would rather use only test 1
         Object[][] tests = new Object[(int) countTests][];
         for (int i=0; i < countTests; i++) {
             tests[i] = new Object[]{i+1};
@@ -60,7 +60,8 @@ public class EngineDeclaration {
     }
 
     @Before
-    public void createManagers() throws IOException {
+    public void createManagers() throws Exception {
+        System.out.println("Test"+numberOfTests);
         /* First, we clear everything */
         Event.invalidateEventSchema();
         Stream.invalidateStreamsSchema();
@@ -87,14 +88,13 @@ public class EngineDeclaration {
          * Line 2 and on: ouput of the query, not in a particular order
          */
 
-        String queryFile = "./src/test/java/edu/puc/core/engine/test_files/Test" + Integer.toString(numberOfTests) + "/query_test.data";
-        String streamFile = "./src/test/java/edu/puc/core/engine/test_files/Test" + Integer.toString(numberOfTests) + "/stream_test.data";
+        String queryFile = "./src/test/java/edu/puc/core/engine/test_files/Test" + numberOfTests + "/query_test.data";
+        String streamFile = "./src/test/java/edu/puc/core/engine/test_files/Test" + numberOfTests + "/stream_test.data";
         ExecutorManager executorManager = ExecutorManager.fromCOREFile(getReader(queryFile), Optional.empty());
         StreamManager streamManager = StreamManager.fromCOREFile(getReader(streamFile));
-        engine = new Engine(executorManager, streamManager); //engine for the test
-        BaseEngine.LOGGER.info("Initializing MultiEngine");
-        Engine.fastRun = true; //so the test can go faster
-        BufferedReader outputFile = getReader("./src/test/java/edu/puc/core/engine/test_files/Test" + Integer.toString(numberOfTests) + "/output.txt");
+        engine = BaseEngine.newEngine(executorManager, streamManager, false, true, true);
+
+        BufferedReader outputFile = getReader("./src/test/java/edu/puc/core/engine/test_files/Test" + numberOfTests + "/output.txt");
         String output;
         while ((output = outputFile.readLine()) != null) {
             outputs.add(output);
@@ -118,49 +118,45 @@ public class EngineDeclaration {
         }
         assertEquals("Not all events given to Engine for Test " + Integer.toString(numberOfTests) +
                 ", should be " + Integer.toString(realEvents)  + "\n", realEvents, numberEvents);
-        //checks that the events given to the engine are the same that it's suppose to recieve given the outputFile
+        //checks that the events given to the engine are the same that it's supposed to receive given the outputFile
     }
 
-
     // FIXME
-    @Test @Ignore
-    public void correctOutput() throws InterruptedException, IOException {
-        // all the matches are given to global variable allMatches
+    // Test15 fails both in SimpleExecutor and TimeWindowsExecutor
+    @Test
+    public void correctOutput() throws InterruptedException {
         engine.setMatchCallback( matches -> {
             allMatches.add(matches);
         });
 
-        edu.puc.core.runtime.events.Event e;
-
-        /* Start reading the streams */
-
         engine.start();
-        Thread.sleep(500);
+        Thread.sleep(500); // wait until all queries have been parsed and all events have been read.
+        edu.puc.core.runtime.events.Event e;
         while ((e = engine.nextEvent()) != null) {
             BaseEngine.LOGGER.info("Event sent: " + e.toString());
             engine.sendEvent(e);
         }
-        // a set is created were all the matches from the outputFile are saved
-        int outputNumber = 1;
-        Set<String> setOutput = new HashSet<String>();
-        for (int i = outputNumber; i < outputs.size(); i++){
-            setOutput.add(outputs.get(i));
+
+        // TODO
+        // Parse a whole Event and compare the event
+        Set<Double> expectedValues = new HashSet<>();
+        for (int i = 1; i < outputs.size(); i++){
+            String str = outputs.get(i);
+            Double value = Double.parseDouble(str.split("=")[1]); // e.g. value=4.12
+            expectedValues.add(value);
         }
-        // another set is created were all the matches from the engine are saved
-        Set<String> setEvents = new HashSet<String>();
+
+        Set<Double> values = new HashSet<>();
         for(CDSComplexEventGrouping match : EngineDeclaration.allMatches) {
-            edu.puc.core.runtime.events.Event event1 = match.getLastEvent();
-            int valueSize = event1.toString().split(", ").length;
             match.forEach(m -> {
-                m.forEach(event -> setEvents.add(event.toString().split(", ")[valueSize - 1].substring(0, event.toString().split(", ")[valueSize - 1].length() - 1)));
+                m.forEach(event ->
+                        values.add((Double) event.getValue("value"))
+                );
             });
-            outputNumber++;
         }
-        assertEquals("Not correct output for Test " + Integer.toString(numberOfTests) + " should be for the last attribute of the event and format 'value=8.0'; ", setOutput, setEvents);
-        // The sets are compared to be the same, its essential that they are sets because the order of the events can change
+        assertEquals("Not correct output for Test" + numberOfTests, expectedValues, values);
     }
 
-    //helps to read files
     private static BufferedReader getReader(String filePath) throws FileNotFoundException {
         FileReader fr = new FileReader(filePath);
         return new BufferedReader(fr);

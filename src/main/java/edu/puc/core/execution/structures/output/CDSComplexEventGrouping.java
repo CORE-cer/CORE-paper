@@ -77,6 +77,12 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
                     a1 = enumerationParameters.a;
                     s1 = enumerationParameters.b;
                 }
+                // Edge case that only happens when the complex event has no union nodes.
+                // This prevents any traversal if the process doesn't have any work left
+                if (current.getPaths() <= s1) {
+                    current = CDSNode.BOTTOM;
+                    return null;
+                }
                 while (true) {
                     if (current.isBottom()) {
                         Triple<CDSNode, ComplexEventNode, Pair<Integer, Integer>> triplet = stack.pop();
@@ -85,13 +91,6 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
                         s1 = triplet.c.a;
                         a1 = triplet.c.b;
                     } else if (current instanceof CDSOutputNode) {
-                        // This is very rare case that only happens
-                        // when the complex event has no union nodes.
-                        if (current.getPaths() <= s1) {
-                            // This will force to stop the enumeration
-                            current = CDSNode.BOTTOM;
-                            return null;
-                        }
                         CDSOutputNode temp = (CDSOutputNode) current;
                         if (temp.getTransitionType().isBlack()) {
                             complexEvent.push(temp.getEvent(), temp.getTransitionType());
