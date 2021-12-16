@@ -85,6 +85,13 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
                         s1 = triplet.c.a;
                         a1 = triplet.c.b;
                     } else if (current instanceof CDSOutputNode) {
+                        // This is very rare case that only happens
+                        // when the complex event has no union nodes.
+                        if (current.getPaths() <= s1) {
+                            // This will force to stop the enumeration
+                            current = CDSNode.BOTTOM;
+                            return null;
+                        }
                         CDSOutputNode temp = (CDSOutputNode) current;
                         if (temp.getTransitionType().isBlack()) {
                             complexEvent.push(temp.getEvent(), temp.getTransitionType());
@@ -120,6 +127,7 @@ public class CDSComplexEventGrouping implements Iterable<ComplexEvent> {
                                 current = CDSNode.BOTTOM;
                             } else {
                                 // Nothing left to do in this CDS.
+                                current = CDSNode.BOTTOM;
                                 return null;
                             }
                         }
