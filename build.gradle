@@ -28,9 +28,9 @@ dependencies {
 }
 
 task fatJar(type: Jar) {
-    baseName = 'CORE-FAT'
+    archiveBaseName = 'CORE-FAT'
     from {
-        configurations.compile.collect {
+        configurations.runtimeClasspath.collect {
             it.isDirectory() ? it : zipTree(it)
         }
     }
@@ -39,5 +39,6 @@ task fatJar(type: Jar) {
                 'Main-Class': 'edu.puc.core.Main'
         )
     }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     with jar
 }
